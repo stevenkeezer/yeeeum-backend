@@ -61,7 +61,7 @@ def facebook_logged_in(blueprint, token):
         token = Token(user_id=current_user.id, uuid=str(uuid.uuid4().hex))
         db.session.add(token)
         db.session.commit()
-    return redirect(os.eviron.get('URL')+"/?api_key={}".format(token.uuid))
+    return redirect(os.environ.get('URL')+"/?api_key={}".format(token.uuid))
 
 
 
