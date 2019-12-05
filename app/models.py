@@ -2,8 +2,8 @@ from flask_sqlalchemy import SQLAlchemy
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from flask_login import LoginManager, UserMixin
 from flask_dance.consumer.storage.sqla import OAuthConsumerMixin
-import datetime 
 
+import datetime 
 
 db = SQLAlchemy()
 
@@ -60,6 +60,8 @@ class Token(db.Model):
     user = db.relationship("User")
 
 class Recipe(db.Model):
+    __searchable__ =["title"]
+
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
     ingredients = db.Column(db.JSON, nullable=False)
@@ -67,6 +69,7 @@ class Recipe(db.Model):
     like = db.Column(db.Integer, default=0)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     comments = db.relationship("Comments", backref="recipe", lazy=True)
+    images = db.relationship("Images", backref="recipe", lazy=True)
 
     def amazing(self):
         return { "id": self.id,
@@ -75,12 +78,13 @@ class Recipe(db.Model):
                 "like":self.like,
                 "user_id":self.user_id,
                 "comments":[ i.amazing() for i in self.comments],
-                "user_name":self.user.name
+                "user_name":self.user.name,
+                "images": [ i.amazing() for i in self.images]
                 }
 
     def as_dict(self):
         return {c.name: str(getattr(self, c.name)) for c in self.__table__.columns}
-  
+
 class RecipeLike(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer)
@@ -107,6 +111,12 @@ class Images(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     recipe_id = db.Column(db.Integer, db.ForeignKey("recipe.id"))
     img_url = db.Column(db.String, default='default.jpg')
+
+    def amazing(self):
+        return { "id": self.id,
+                "recipe_id": self.recipe_id,
+                "img_url":self.img_url,
+                }
 
     def as_dict(self):
         return {c.name: str(getattr(self, c.name)) for c in self.__table__.columns}

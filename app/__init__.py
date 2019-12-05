@@ -1,9 +1,8 @@
 from flask import Flask, redirect, url_for, flash, render_template, jsonify, request,session, make_response
 from flask_login import login_required, logout_user, current_user, login_user
-from .models import db, login_manager, Token
 from .oauth import blueprint
 from .cli import create_db
-from .models import db, User, OAuth, Token, Recipe, RecipeLike, Comments, Images
+from .models import db, User, OAuth, login_manager, Token, Recipe, RecipeLike, Comments, Images, Recipe
 from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_bcrypt import Bcrypt
@@ -14,6 +13,7 @@ import uuid
 import boto3
 from botocore.client import Config
 from werkzeug import secure_filename
+import flask_whooshalchemy as wa
 
 
 
@@ -29,6 +29,7 @@ mail.init_app(app)
 bcrypt = Bcrypt(app)
 migrate = Migrate(app, db)
 login_manager.init_app(app)
+wa.whoosh_index(app, Recipe)
 CORS(app)
 
 @app.route('/login', methods=["POST"])
@@ -243,6 +244,7 @@ def get_comments():
 
 
 def send_reset_email(user):
+    print(user)
     token = user.get_reset_token()
     msg = Message('Password Reset Request',
                   sender='noreply@demo.com',
@@ -256,12 +258,12 @@ If you did not make this request then simply ignore this email and no changes wi
 
 @app.route("/reset_password", methods=['GET', 'POST'])
 def reset_request():
-    print('reqiuestesaasfas')
     if not current_user.is_authenticated:
         # return redirect(url_for('main.home'))
-        user = User.query.filter_by(email=form.email.data).first()
+        user = User.query.filter_by(email=request.get_json()["email"]).first()
         send_reset_email(user)
         # return redirect(url_for('users.login'))
+        print('reqiuestesaasfas', user)
     return jsonify({ 
         "blah": "blah"
     })
@@ -294,3 +296,15 @@ def get_recipe_images():
     for image in images:
         jsonified_images.append(image.as_dict())
     return jsonify(jsonified_images)
+
+
+@app.route('/search', methods=['GET', 'POST'])
+def search():
+    search_result = Recipe.query.whoosh_search(request.get_json()["query"]).all()
+
+    jsonified_search_results = []
+    for result in search_result:
+        jsonified_search_results.append(result.as_dict())
+    return jsonify(
+        jsonified_search_results
+    )
