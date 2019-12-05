@@ -5,7 +5,7 @@ from flask_dance.consumer import oauth_authorized, oauth_error
 from flask_dance.consumer.storage.sqla import SQLAlchemyStorage
 from sqlalchemy.orm.exc import NoResultFound
 from .models import db, User, OAuth, Token
-import uuid
+import uuid,os
 
 blueprint = make_facebook_blueprint(
     storage=SQLAlchemyStorage(OAuth, db.session, user=current_user)
@@ -61,7 +61,7 @@ def facebook_logged_in(blueprint, token):
         token = Token(user_id=current_user.id, uuid=str(uuid.uuid4().hex))
         db.session.add(token)
         db.session.commit()
-    return redirect("https://localhost:3000/?api_key={}".format(token.uuid))
+    return redirect(os.eviron.get('URL')+"/?api_key={}".format(token.uuid))
 
 
 
