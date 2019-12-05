@@ -11,7 +11,6 @@ blueprint = make_facebook_blueprint(
     storage=SQLAlchemyStorage(OAuth, db.session, user=current_user)
 )
 
-
 # create/login local user on successful OAuth login
 @oauth_authorized.connect_via(blueprint)
 def facebook_logged_in(blueprint, token):
@@ -62,7 +61,7 @@ def facebook_logged_in(blueprint, token):
         token = Token(user_id=current_user.id, uuid=str(uuid.uuid4().hex))
         db.session.add(token)
         db.session.commit()
-    return redirect("http://localhost:3000/?api_key={}".format(token.uuid))
+    return redirect("https://localhost:3000/?api_key={}".format(token.uuid))
 
 
 

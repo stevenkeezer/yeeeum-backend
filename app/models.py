@@ -32,8 +32,7 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(256), unique=True)
     password = db.Column(db.String(256))
     email = db.Column(db.String(50), unique=True)
-    # likes = db.relationship("RecipeLikes", backref="user", lazy=True)
-    recipes = db.relationship('Recipe', backref='author', lazy=True)
+    recipes = db.relationship('Recipe', backref='user', lazy=True)
     comments = db.relationship("Comments", backref="user", lazy=True)
     
     def get_reset_token(self, expires_sec=1800):
@@ -63,15 +62,22 @@ class Token(db.Model):
 class Recipe(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
-    ingredients = db.Column(db.Text, nullable=False)
+    ingredients = db.Column(db.JSON, nullable=False)
     directions = db.Column(db.Text, nullable=False)
     like = db.Column(db.Integer, default=0)
-    # created_at = db.Column(db.DateTime, server_default=db.func.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    image_file = db.Column(db.String(20), nullable=False, default='default.jpg')
     comments = db.relationship("Comments", backref="recipe", lazy=True)
 
-    
+    def amazing(self):
+        return { "id": self.id,
+                "title": self.title,
+                "ingredients":self.ingredients,
+                "like":self.like,
+                "user_id":self.user_id,
+                "comments":[ i.amazing() for i in self.comments],
+                "user_name":self.user.name
+                }
+
     def as_dict(self):
         return {c.name: str(getattr(self, c.name)) for c in self.__table__.columns}
   
@@ -97,4 +103,11 @@ class Comments(db.Model):
                 "user_name":self.user.name
                 }
 
+class Images(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    recipe_id = db.Column(db.Integer, db.ForeignKey("recipe.id"))
+    img_url = db.Column(db.String, default='default.jpg')
+
+    def as_dict(self):
+        return {c.name: str(getattr(self, c.name)) for c in self.__table__.columns}
 

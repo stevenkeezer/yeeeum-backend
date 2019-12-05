@@ -1,10 +1,9 @@
 from flask import Flask, redirect, url_for, flash, render_template, jsonify, request,session, make_response
 from flask_login import login_required, logout_user, current_user, login_user
-from .config import Config
 from .models import db, login_manager, Token
 from .oauth import blueprint
 from .cli import create_db
-from .models import db, User, OAuth, Token, Recipe, RecipeLike, Comments
+from .models import db, User, OAuth, Token, Recipe, RecipeLike, Comments, Images
 from flask_cors import CORS
 from flask_migrate import Migrate
 from flask_bcrypt import Bcrypt
@@ -12,16 +11,19 @@ from sqlalchemy.exc import SQLAlchemyError
 from flask_mail import Message, Mail
 import datetime
 import uuid
+import boto3
+from botocore.client import Config
+from werkzeug import secure_filename
+
 
 
 app = Flask(__name__)
-app.config.from_object(Config)
+app.config.from_object('config.Config')
 app.register_blueprint(blueprint, url_prefix="/login")
 app.cli.add_command(create_db)
 db.init_app(app)
 mail = Mail()
 mail.init_app(app)
-
 
 
 bcrypt = Bcrypt(app)
@@ -60,7 +62,6 @@ def logout():
 def index():
     return render_template("home.html")
 
-
 @app.route('/getuser')
 @login_required
 def getuser():
@@ -69,7 +70,7 @@ def getuser():
         return jsonify({
             "user_id": current_user.id,
             "user_name": current_user.name,
-            "profile_img_id": profile_img.provider_user_id
+            "profile_img_id": profile_img.provider_user_id,
         })
     else:
         return jsonify({
@@ -91,18 +92,22 @@ def posts():
         like_count = RecipeLike.query.filter_by(recipe_id=post.id).count()
         post.like = like_count
         db.session.commit()
-        jsonified_recipes.append(post.as_dict())
+        jsonified_recipes.append(post.amazing())
     return jsonify(jsonified_recipes)
 
 @app.route('/post', methods=["GET", "POST"])
 def post():
     recipe_id =request.get_json()["recipe_id"]
     post = Recipe.query.filter_by(id=recipe_id).first()
+
+    postObj = post.amazing()
+    print(postObj['user_id'])
     return jsonify({
         "title":post.title,
         "ingredients":post.ingredients, 
         "directions":post.directions, 
-        "user_id":post.id,
+        "user_id": postObj['user_id'],
+        "user_name": postObj["user_name"] 
     })
 
 @app.route('/register', methods=["POST"])
@@ -128,28 +133,50 @@ def register():
         "email": "email"
     })
 
-@app.route('/post_recipe', methods=["GET", "POST", "OPTIONS"])
+@app.route('/post_recipe', methods=[ "POST"])
 @login_required
-
 def post_recipe():
-    print('hi Loi')
-    print(request.files)
-    # recipe = Recipe(
-    #     title=request.get_json()["title"],
-    #     ingredients=request.get_json()["ingredients"], 
-    #     directions=request.get_json()["directions"], 
-    #     user_id=current_user.id,
-    #     # image_file=request.get_json()["image_file"]
-    # )
-    # db.session.add(recipe)
-    # db.session.commit()
-    # return jsonify({
-    #     "asdf": "asdfs",
-    #     "wqhwqhdwqh": "qwddwqhgdwq"
-    # })
+    s3 = boto3.resource('s3')
+    print(request.get_json()["ingredients"])
+    recipe = Recipe(
+        title=request.get_json()["title"],
+        ingredients=request.get_json()["ingredients"], 
+        directions=request.get_json()["directions"], 
+        user_id=current_user.id
+    )
+    db.session.add(recipe)
+    db.session.commit()
+    return jsonify(status=True, id=recipe.id)        
+
+
+@app.route('/add_recipe_image', methods=["POST"])
+@login_required
+def add_recipe_image():
+    s3 = boto3.resource('s3')
+    recipe = Recipe.query.filter_by(user_id=current_user.id).order_by(Recipe.id.desc()).first()
+    for fi in request.files:
+        s3.Bucket("yeeeum").put_object(Key=request.files[fi].filename, Body=request.files[fi].stream, ACL='public-read')
+        if not recipe:
+            image = Images(img_url=request.files[fi].filename, recipe_id=1)
+        else:
+            image = Images(img_url=request.files[fi].filename, recipe_id=recipe.id+1)
+        db.session.add(image)
+        db.session.commit()
+    return jsonify([image.img_url,image.recipe_id])
+
+
+@app.route('/update_recipe', methods=["GET", "POST"])
+@login_required
+def update_recipe():
+    recipe = Recipe.query.get(request.get_json()["recipe_id"])
+    recipe.title=request.get_json()["title"] 
+    recipe.directions=request.get_json()["directions"] 
+    recipe.ingredients=request.get_json()["ingredients"]
+    db.session.commit()
     return jsonify({
-        "hi": "hi"
+
     })
+
 
 @app.route('/like', methods=["GET", "POST"])
 @login_required
@@ -191,6 +218,8 @@ def profile():
 @app.route('/favorites', methods=["GET", "POST"])
 @login_required
 def favorites():
+    fav_recipes = RecipeLike.query.filter_by(user_id=current_user.id).all()
+    print(fav_recipes)
     return jsonify()
 
 @app.route('/comment', methods=["GET", "POST"])
@@ -255,3 +284,13 @@ def reset_token(token):
         flash('Your password has been updated! You are now able to log in', 'success')
         return redirect(url_for('users.login'))
     return render_template('reset_token.html', title='Reset Password', form=form)
+
+@app.route("/get_recipe_images", methods=['GET', 'POST'])
+def get_recipe_images():
+    recipe_id = request.get_json()['recipe_id']
+    images = Images.query.filter_by(recipe_id=recipe_id).all()
+    # print('recipe_id', recipe_id)
+    jsonified_images = []
+    for image in images:
+        jsonified_images.append(image.as_dict())
+    return jsonify(jsonified_images)
