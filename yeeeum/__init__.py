@@ -14,7 +14,7 @@ import boto3
 from botocore.client import Config
 from werkzeug import secure_filename
 import flask_whooshalchemy as wa
-
+import os
 
 
 app = Flask(__name__)
@@ -31,10 +31,16 @@ migrate = Migrate(app, db)
 login_manager.init_app(app)
 wa.whoosh_index(app, Recipe)
 CORS(app)
+app.config["MAIL_SERVER"] = "smtp.gmail.com"
+app.config["MAIL_PORT"] = 587
+app.config["MAIL_USE_TLS"] = True
+app.config["MAIL_USERNAME"] = os.environ.get("EMAIL_USER")
+app.config["MAIL_PASSWORD"] = os.environ.get("EMAIL_PASS")
 
 @app.route('/login', methods=["POST"])
 def login():
     user = User.query.filter_by(email=request.get_json()['email']).first()
+    
     if user and bcrypt.check_password_hash(user.password, request.get_json()['password']):
         token = Token.query.filter_by(user_id=user.id).first()
         if not token:
@@ -42,10 +48,11 @@ def login():
             db.session.add(token)
             db.session.commit()
         login_user(user, remember=True)
-    
+
     return jsonify({
         "username": user.name,
-        "token": token.uuid
+        "token": token.uuid,
+        "img_url": current_user.img_url
     })
 
 @app.route("/logout")
@@ -66,18 +73,17 @@ def index():
 @app.route('/getuser')
 @login_required
 def getuser():
-    profile_img = OAuth.query.filter_by(user_id=current_user.id).first()
-    if profile_img:
-        return jsonify({
-            "user_id": current_user.id,
-            "user_name": current_user.name,
-            "profile_img_id": profile_img.provider_user_id,
-        })
-    else:
-        return jsonify({
-            "user_id": current_user.id,
-            "user_name": current_user.name,
-        })
+    fb_profile_img = OAuth.query.filter_by(user_id=current_user.id).first()
+    if fb_profile_img:
+        user = User.query.get(current_user.id)
+        user.fb_img_id = fb_profile_img.provider_user_id
+        db.session.commit()
+    return jsonify({
+        "user_id": current_user.id,
+        "user_name": current_user.name,
+        "img_url": current_user.img_url,
+        "fb_img_id": current_user.fb_img_id
+    })
 
 @app.route('/home')
 @login_required
@@ -87,29 +93,29 @@ def home():
 
 @app.route('/posts', methods=["GET", "POST"])
 def posts():
-    posts = Recipe.query.all()
+    posts = Recipe.query.filter_by(deleted=False).paginate(page=request.get_json(), per_page=8, error_out=True, max_per_page=None).items
     jsonified_recipes = []
+
     for post in posts:
         like_count = RecipeLike.query.filter_by(recipe_id=post.id).count()
         post.like = like_count
         db.session.commit()
-        jsonified_recipes.append(post.amazing())
+        jsonified_recipes.append(post.likedRecipe(post.id, current_user))
+        
     return jsonify(jsonified_recipes)
 
 @app.route('/post', methods=["GET", "POST"])
 def post():
     recipe_id =request.get_json()["recipe_id"]
     post = Recipe.query.filter_by(id=recipe_id).first()
+    postObj = post.likedRecipe(recipe_id, current_user)
+    return jsonify(postObj)
 
-    postObj = post.amazing()
-    print(postObj['user_id'])
-    return jsonify({
-        "title":post.title,
-        "ingredients":post.ingredients, 
-        "directions":post.directions, 
-        "user_id": postObj['user_id'],
-        "user_name": postObj["user_name"] 
-    })
+@app.route('/replace_post', methods=["GET", "POST"])
+def replace_post():
+    recipe = Recipe.query.get(request.get_json())
+    update = recipe.likedRecipe(recipe.id, current_user)
+    return jsonify(update)
 
 @app.route('/register', methods=["POST"])
 def register():
@@ -138,8 +144,8 @@ def register():
 @login_required
 def post_recipe():
     s3 = boto3.resource('s3')
-    print(request.get_json()["ingredients"])
     recipe = Recipe(
+        description=request.get_json()['description'],
         title=request.get_json()["title"],
         ingredients=request.get_json()["ingredients"], 
         directions=request.get_json()["directions"], 
@@ -148,7 +154,6 @@ def post_recipe():
     db.session.add(recipe)
     db.session.commit()
     return jsonify(status=True, id=recipe.id)        
-
 
 @app.route('/add_recipe_image', methods=["POST"])
 @login_required
@@ -165,6 +170,16 @@ def add_recipe_image():
         db.session.commit()
     return jsonify([image.img_url,image.recipe_id])
 
+@app.route('/add_profile_image/<user_id>', methods=["POST"])
+@login_required
+def add_profile_image(user_id):
+    s3 = boto3.resource('s3')
+    for fi in request.files:
+        user = User.query.get(current_user.id)
+        s3.Bucket("yeeeum").put_object(Key=request.files[fi].filename, Body=request.files[fi].stream, ACL='public-read')
+        user.img_url = request.files[fi].filename
+        db.session.commit()
+    return jsonify([user.img_url, current_user.id])
 
 @app.route('/update_recipe', methods=["GET", "POST"])
 @login_required
@@ -172,30 +187,38 @@ def update_recipe():
     recipe = Recipe.query.get(request.get_json()["recipe_id"])
     recipe.title=request.get_json()["title"] 
     recipe.directions=request.get_json()["directions"] 
+    recipe.description=request.get_json()["description"] 
     recipe.ingredients=request.get_json()["ingredients"]
     db.session.commit()
     return jsonify({
 
     })
 
-
 @app.route('/like', methods=["GET", "POST"])
 @login_required
 def like():
-    print('exists', current_user.id)
     like_exists = RecipeLike.query.filter_by(user_id=current_user.id, recipe_id=request.get_json()["recipe_id"]).first()
     if like_exists: 
         like = RecipeLike.query.filter_by(user_id=current_user.id, recipe_id=request.get_json()["recipe_id"]).first()
         db.session.delete(like)
         db.session.commit()
+        like_count = RecipeLike.query.filter_by(recipe_id=request.get_json()["recipe_id"]).count()
+        recipe = Recipe.query.get(request.get_json()["recipe_id"])
+        recipe.like = like_count
+        db.session.commit()
     else:
         like = RecipeLike(user_id=current_user.id, recipe_id=request.get_json()["recipe_id"])
         db.session.add(like)
         db.session.commit()
+        like_count = RecipeLike.query.filter_by(recipe_id=request.get_json()["recipe_id"]).count()
+        recipe = Recipe.query.get(request.get_json()["recipe_id"])
+        recipe.like = like_count
+        db.session.commit()
     return jsonify({
-
+        
     })
-    
+
+
 @app.route('/get_likes', methods=["GET", "POST"])
 @login_required
 def get_likes():
@@ -206,22 +229,36 @@ def get_likes():
     return jsonify(
         jsonified_likes
     )
-    
+
+
 @app.route('/profile', methods=["GET", "POST"])
 @login_required
 def profile():
     user_recipes = Recipe.query.filter_by(user_id=current_user.id).all()
     jsonified_recipes = []
     for recipe in user_recipes:
-        jsonified_recipes.append(recipe.as_dict())
+        like_count = RecipeLike.query.filter_by(recipe_id=recipe.id).count()
+        recipe.like = like_count
+        db.session.commit()
+        jsonified_recipes.append(recipe.likedRecipe(recipe.id, current_user))
     return jsonify(jsonified_recipes)
 
 @app.route('/favorites', methods=["GET", "POST"])
 @login_required
 def favorites():
-    fav_recipes = RecipeLike.query.filter_by(user_id=current_user.id).all()
-    print(fav_recipes)
-    return jsonify()
+    like_recipes = RecipeLike.query.filter_by(user_id=current_user.id).all()
+    fav_posts = []
+    for like in like_recipes:
+        posts = Recipe.query.filter_by(id=like.recipe_id).all()
+        fav_posts.append(posts[0])
+        
+    jsonified_favorites = []
+    for post in fav_posts:
+        like_count = RecipeLike.query.filter_by(recipe_id=post.id).count()
+        post.like = like_count
+        db.session.commit()
+        jsonified_favorites.append(post.likedRecipe(post.id, current_user))
+    return jsonify(jsonified_favorites)
 
 @app.route('/comment', methods=["GET", "POST"])
 @login_required
@@ -244,13 +281,12 @@ def get_comments():
 
 
 def send_reset_email(user):
-    print(user)
     token = user.get_reset_token()
     msg = Message('Password Reset Request',
                   sender='noreply@demo.com',
-                  recipients=[user.email])
+                  recipients=[user.email])                
     msg.body = f'''To reset your password, visit the following link:
-{url_for('users.reset_token', token=token, _external=True)}
+  {os.environ.get('URL')}/reset_token/{token}
 If you did not make this request then simply ignore this email and no changes will be made.
 '''
     mail.send(msg)
@@ -259,33 +295,23 @@ If you did not make this request then simply ignore this email and no changes wi
 @app.route("/reset_password", methods=['GET', 'POST'])
 def reset_request():
     if not current_user.is_authenticated:
-        # return redirect(url_for('main.home'))
         user = User.query.filter_by(email=request.get_json()["email"]).first()
         send_reset_email(user)
-        # return redirect(url_for('users.login'))
-        print('reqiuestesaasfas', user)
     return jsonify({ 
-        "blah": "blah"
+        "status": True
     })
 
-
-@app.route("/reset_password/<token>", methods=['GET', 'POST'])
-def reset_token(token):
-    if current_user.is_authenticated:
-        return redirect(url_for('main.home'))
+@app.route("/reset_token", methods=['GET', 'POST'])
+def reset_token():
+    token = request.get_json()["token"]
     user = User.verify_reset_token(token)
     if user is None:
         flash('That is an invalid or expired token', 'warning')
         return redirect(url_for('users.reset_request'))
-    form = ResetPasswordForm()
-    if form.validate_on_submit():
-        hashed_password = bcrypt.generate_password_hash(
-            form.password.data).decode('utf-8')
-        user.password = hashed_password
-        db.session.commit()
-        flash('Your password has been updated! You are now able to log in', 'success')
-        return redirect(url_for('users.login'))
-    return render_template('reset_token.html', title='Reset Password', form=form)
+    hashed_password = bcrypt.generate_password_hash(request.get_json()['password']).decode('utf-8')
+    user.password = hashed_password
+    db.session.commit()
+    return jsonify()
 
 @app.route("/get_recipe_images", methods=['GET', 'POST'])
 def get_recipe_images():
@@ -297,14 +323,44 @@ def get_recipe_images():
         jsonified_images.append(image.as_dict())
     return jsonify(jsonified_images)
 
-
 @app.route('/search', methods=['GET', 'POST'])
 def search():
-    search_result = Recipe.query.whoosh_search(request.get_json()["query"]).all()
+    search_result = Recipe.query.filter_by(deleted=False).whoosh_search(request.get_json()["query"], or_=True).all()
 
     jsonified_search_results = []
-    for result in search_result:
-        jsonified_search_results.append(result.as_dict())
+    if len(search_result) < 1:
+        recipes = Recipe.query.all()
+        for recipe in recipes:
+            jsonified_search_results.append(recipe.likedRecipe(recipe.id, current_user))
+    else: 
+        for result in search_result:
+            jsonified_search_results.append(result.likedRecipe(result.id, current_user))
     return jsonify(
         jsonified_search_results
     )
+
+@app.route('/delete_recipe', methods=['GET', "POST"])
+def delete_recipe():
+    recipe = Recipe.query.get(request.get_json()["recipe_id"])
+    recipe.deleted = True
+    db.session.commit()
+    return jsonify()
+
+@app.route('/delete_comment', methods=["GET", "POST"])
+def delete_comment():
+    comment = Comments.query.get(request.get_json()["comment_id"])
+    comment.deleted = True
+    db.session.commit()
+    return jsonify({ "status": True})
+
+@app.route('/user/<int:id>', methods=["GET", "POST"])
+def user(id):
+    user = User.query.get(id)
+    recipes = Recipe.query.filter_by(user_id=id).all()
+    jsonified_recipes = []
+    for recipe in recipes:
+        like_count = RecipeLike.query.filter_by(recipe_id=recipe.id).count()
+        recipe.like = like_count
+        db.session.commit()
+        jsonified_recipes.append(recipe.likedRecipe(recipe.id, current_user))
+    return jsonify([jsonified_recipes, { "name": user.name, "img_url":user.img_url, "fbId":user.fb_img_id}])

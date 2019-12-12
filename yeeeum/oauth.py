@@ -33,9 +33,7 @@ def facebook_logged_in(blueprint, token):
     try:
         oauth = query.one()
     except NoResultFound:
-        print('===========================================================================================')
         oauth = OAuth(provider=blueprint.name, provider_user_id=user_id, token=token)
-        print('====================dsadsadsadsadsasads=======================================================================')
 
     if oauth.user:
         login_user(oauth.user)

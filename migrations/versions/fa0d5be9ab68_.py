@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 4235f52c6098
+Revision ID: fa0d5be9ab68
 Revises: 
-Create Date: 2019-12-05 10:33:49.212748
+Create Date: 2019-12-10 00:09:05.505229
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa,sqlalchemy_utils
 
 
 # revision identifiers, used by Alembic.
-revision = '4235f52c6098'
+revision = 'fa0d5be9ab68'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -29,6 +29,8 @@ def upgrade():
     sa.Column('name', sa.String(length=256), nullable=True),
     sa.Column('password', sa.String(length=256), nullable=True),
     sa.Column('email', sa.String(length=50), nullable=True),
+    sa.Column('img_url', sa.String(length=100), nullable=True),
+    sa.Column('fb_img_id', sa.Numeric(asdecimal=False), nullable=True),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('email'),
     sa.UniqueConstraint('name')
@@ -46,11 +48,14 @@ def upgrade():
     )
     op.create_table('recipe',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('title', sa.String(length=100), nullable=False),
+    sa.Column('title', sa.Text(), nullable=False),
     sa.Column('ingredients', sa.JSON(), nullable=False),
     sa.Column('directions', sa.Text(), nullable=False),
     sa.Column('like', sa.Integer(), nullable=True),
+    sa.Column('description', sa.Text(), nullable=True),
+    sa.Column('created', sa.DateTime(), nullable=True),
     sa.Column('user_id', sa.Integer(), nullable=False),
+    sa.Column('deleted', sa.Boolean(), nullable=True),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -67,6 +72,7 @@ def upgrade():
     sa.Column('body', sa.String(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('recipe_id', sa.Integer(), nullable=True),
+    sa.Column('deleted', sa.Boolean(), nullable=True),
     sa.ForeignKeyConstraint(['recipe_id'], ['recipe.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
