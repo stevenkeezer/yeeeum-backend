@@ -11,15 +11,18 @@ Click==7.0
 colorama==0.4.1
 cryptography==2.8
 DateTime==4.3
+decorator==4.4.1
 docutils==0.15.2
 Flask==1.1.1
 Flask-Bcrypt==0.7.1
 Flask-Cors==3.0.8
 Flask-Dance==3.0.0
+Flask-Ext==0.1
 Flask-Login==0.4.1
 Flask-Mail==0.9.1
 Flask-Migrate==2.5.2
 Flask-SQLAlchemy==2.4.1
+Flask-WhooshAlchemy==0.56
 gunicorn==20.0.4
 idna==2.8
 itsdangerous==1.1.0
@@ -47,5 +50,7 @@ SQLAlchemy==1.3.11
 SQLAlchemy-Utils==0.35.0
 urllib3==1.25.7
 URLObject==2.4.3
+validators==0.14.1
 Werkzeug==0.16.0
+Whoosh==2.7.4
 zope.interface==4.7.1
