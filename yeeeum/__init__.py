@@ -26,7 +26,7 @@ mail.init_app(app)
 
 
 bcrypt = Bcrypt(app)
-migrate = Migrate(app, db)
+Migrate(app, db)
 login_manager.init_app(app)
 CORS(app)
 app.config["MAIL_SERVER"] = "smtp.gmail.com"
