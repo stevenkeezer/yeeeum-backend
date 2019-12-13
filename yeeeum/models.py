@@ -63,6 +63,7 @@ class Token(db.Model):
     user = db.relationship("User")
 
 class Recipe(db.Model):
+    __searchable__ =["title"]
 
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.Text, nullable=False)
