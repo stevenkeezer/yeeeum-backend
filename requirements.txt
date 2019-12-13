@@ -10,6 +10,7 @@ Click==7.0
 cryptography==2.8
 docutils==0.15.2
 Flask==1.1.1
+gunicorn==20.0.4
 Flask-Bcrypt==0.7.1
 Flask-Cors==3.0.8
 Flask-Dance==3.0.0
