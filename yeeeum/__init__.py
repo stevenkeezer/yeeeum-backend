@@ -13,7 +13,6 @@ import uuid
 import boto3
 from botocore.client import Config
 from werkzeug import secure_filename
-import flask_whooshalchemy as wa
 import os
 
 
@@ -29,7 +28,6 @@ mail.init_app(app)
 bcrypt = Bcrypt(app)
 migrate = Migrate(app, db)
 login_manager.init_app(app)
-wa.whoosh_index(app, Recipe)
 CORS(app)
 app.config["MAIL_SERVER"] = "smtp.gmail.com"
 app.config["MAIL_PORT"] = 587
@@ -325,7 +323,7 @@ def get_recipe_images():
 
 @app.route('/search', methods=['GET', 'POST'])
 def search():
-    search_result = Recipe.query.filter_by(deleted=False).whoosh_search(request.get_json()["query"], or_=True).all()
+    # search_result = Recipe.query.filter_by(deleted=False).whoosh_search(request.get_json()["query"], or_=True).all()
 
     jsonified_search_results = []
     if len(search_result) < 1:
