@@ -63,12 +63,12 @@ class Token(db.Model):
     user = db.relationship("User")
 
 class Recipe(db.Model):
-    __searchable__ =["title"]
+    __searchable__ =["title", "directions", "description"]
 
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.Text, nullable=False)
     ingredients = db.Column(db.JSON, nullable=False)
-    directions = db.Column(db.Text, nullable=False)
+    directions = db.Column(db.Text)
     like = db.Column(db.Integer, default=0)
     description = db.Column(db.Text)
     created = db.Column(db.DateTime, default=datetime.datetime.utcnow)

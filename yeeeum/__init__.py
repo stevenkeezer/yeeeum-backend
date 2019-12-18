@@ -93,8 +93,15 @@ def home():
 
 @app.route('/posts', methods=["GET", "POST"])
 def posts():
-    posts = Recipe.query.filter_by(deleted=False).paginate(page=request.get_json(), per_page=8, error_out=True, max_per_page=None).items
+    category = request.args.get("category")
     jsonified_recipes = []
+
+    if category == "popular":
+        posts = Recipe.query.filter_by(deleted=False).order_by(Recipe.like.desc()).limit(12).all()
+    elif category == "latest":
+        posts = Recipe.query.filter_by(deleted=False).order_by(Recipe.created.desc()).limit(12).all()
+    else: 
+        posts = Recipe.query.filter_by(deleted=False).paginate(page=request.get_json(), per_page=8, error_out=True, max_per_page=None).items
 
     for post in posts:
         like_count = RecipeLike.query.filter_by(recipe_id=post.id).count()
@@ -103,6 +110,7 @@ def posts():
         jsonified_recipes.append(post.likedRecipe(post.id, current_user))
         
     return jsonify(jsonified_recipes)
+
 
 @app.route('/post', methods=["GET", "POST"])
 def post():
@@ -132,12 +140,13 @@ def register():
         db.session.commit()
         login_user(user)
     except SQLAlchemyError as e:
-        import code; code.interact(local=dict(globals(), **locals()))
+        print('error', e)
+        # import code; code.interact(local=dict(globals(), **locals()))
         error = str(e.__dict__['orig'])
-        return error
+        return jsonify(error)
 
     return jsonify({
-        "email": "email"
+        "status": True
     })
 
 @app.route('/post_recipe', methods=[ "POST"])
