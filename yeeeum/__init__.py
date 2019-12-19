@@ -278,7 +278,6 @@ def comment():
     })
 
 @app.route('/get_comments', methods=["GET", "POST"])
-@login_required
 def get_comments():
     comments = Comments.query.filter_by(recipe_id=request.get_json()["recipe_id"]).all()
     jsonified_comments = []
