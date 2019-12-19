@@ -199,9 +199,7 @@ def update_recipe():
     recipe.description=request.get_json()["description"] 
     recipe.ingredients=request.get_json()["ingredients"]
     db.session.commit()
-    return jsonify({
-
-    })
+    return jsonify(recipe.as_dict())
 
 @app.route('/like', methods=["GET", "POST"])
 @login_required
