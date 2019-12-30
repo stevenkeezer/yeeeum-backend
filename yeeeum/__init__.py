@@ -171,13 +171,12 @@ def add_recipe_image():
     recipe = Recipe.query.filter_by(user_id=current_user.id).order_by(Recipe.id.desc()).first()
     for fi in request.files:
         s3.Bucket("yeeeum").put_object(Key=request.files[fi].filename, Body=request.files[fi].stream, ACL='public-read')
-        if not recipe:
-            image = Images(img_url=request.files[fi].filename, recipe_id=1)
-        else:
-            image = Images(img_url=request.files[fi].filename, recipe_id=recipe.id+1)
+        image = Images(img_url=request.files[fi].filename, recipe_id=recipe.id)
         db.session.add(image)
         db.session.commit()
     return jsonify([image.img_url,image.recipe_id])
+    return jsonify(["blah"])
+
 
 @app.route('/add_profile_image/<user_id>', methods=["POST"])
 @login_required
@@ -241,7 +240,7 @@ def get_likes():
 @app.route('/profile', methods=["GET", "POST"])
 @login_required
 def profile():
-    user_recipes = Recipe.query.filter_by(user_id=current_user.id).all()
+    user_recipes = Recipe.query.filter_by(deleted=False, user_id=current_user.id).all()
     jsonified_recipes = []
     for recipe in user_recipes:
         like_count = RecipeLike.query.filter_by(recipe_id=recipe.id).count()
@@ -254,11 +253,13 @@ def profile():
 @login_required
 def favorites():
     like_recipes = RecipeLike.query.filter_by(user_id=current_user.id).all()
+
     fav_posts = []
     for like in like_recipes:
         posts = Recipe.query.filter_by(id=like.recipe_id).all()
-        fav_posts.append(posts[0])
-        
+        if not posts[0].deleted:
+            fav_posts.append(posts[0])
+
     jsonified_favorites = []
     for post in fav_posts:
         like_count = RecipeLike.query.filter_by(recipe_id=post.id).count()
@@ -279,7 +280,7 @@ def comment():
 
 @app.route('/get_comments', methods=["GET", "POST"])
 def get_comments():
-    comments = Comments.query.filter_by(recipe_id=request.get_json()["recipe_id"]).all()
+    comments = Comments.query.filter_by(deleted=False, recipe_id=request.get_json()["recipe_id"]).all()
     jsonified_comments = []
     for comment in comments:
         jsonified_comments.append(comment.amazing())
@@ -332,10 +333,10 @@ def get_recipe_images():
 @app.route('/search', methods=['GET', 'POST'])
 def search():
     search_result = Recipe.query.filter_by(deleted=False).whoosh_search(request.get_json()["query"], or_=True).all()
-
+    print(search_result)
     jsonified_search_results = []
     if len(search_result) < 1:
-        recipes = Recipe.query.all()
+        recipes = Recipe.query.filter_by(deleted=False).all()
         for recipe in recipes:
             jsonified_search_results.append(recipe.likedRecipe(recipe.id, current_user))
     else: 
@@ -362,7 +363,7 @@ def delete_comment():
 @app.route('/user/<int:id>', methods=["GET", "POST"])
 def user(id):
     user = User.query.get(id)
-    recipes = Recipe.query.filter_by(user_id=id).all()
+    recipes = Recipe.query.filter_by(deleted=False, user_id=id).all()
     jsonified_recipes = []
     for recipe in recipes:
         like_count = RecipeLike.query.filter_by(recipe_id=recipe.id).count()
