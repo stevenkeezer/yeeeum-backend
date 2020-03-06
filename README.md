@@ -108,7 +108,7 @@ source venv/bin/activate
 ```sh
  pip install requirements.txt
 ```
-or 
+2. Run
 ```sh
 python3 app.py
 ```
