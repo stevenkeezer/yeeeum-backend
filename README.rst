@@ -1,114 +1,204 @@
-Flask-Dance Example App: Facebook SQLAlchemy Edition
-====================================================
+<!--
+*** Thanks for checking out this README Template. If you have a suggestion that would
+*** make this better, please fork the repo and create a pull request or simply open
+*** an issue with the tag "enhancement".
+*** Thanks again! Now go create something AMAZING! :D
+-->
 
-This repository provides an example of how to use `Flask-Dance`_ with
-a SQLAlchemy storage. This particular repository uses Facebook as an
-OAuth provider, and it wires together the following Flask extensions:
 
-* `Flask-Dance`_
-* `Flask-SQLAlchemy`_
-* `Flask-Login`_
 
-You can run this code locally, or deploy it to Heroku_ to test it out.
 
-|heroku-deploy|
 
-Local Installation
-``````````````````
+<!-- PROJECT SHIELDS -->
+<!--
+*** I'm using markdown "reference style" links for readability.
+*** Reference links are enclosed in brackets [ ] instead of parentheses ( ).
+*** See the bottom of this document for the declaration of the reference variables
+*** for contributors-url, forks-url, etc. This is an optional, concise syntax you may use.
+*** https://www.markdownguide.org/basic-syntax/#reference-style-links
+-->
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![MIT License][license-shield]][license-url]
+[![LinkedIn][linkedin-shield]][linkedin-url]
 
-Step 1: Get OAuth credentials from Facebook
--------------------------------------------
-Visit https://developers.facebook.com/apps to register an
-app on Facebook. You must set the application's authorization
-callback URL to ``http://127.0.0.1:5000/login/facebook/authorized``.
 
-Once you've registered your application on Facebook, Facebook will give you an
-app ID and app secret, which we'll use in step 4.
 
-Step 2: Install code and dependencies
--------------------------------------
-Run the following commands on your computer::
+<!-- PROJECT LOGO -->
+<br />
+<p align="center">
+  <a href="https://github.com/othneildrew/Best-README-Template">
+    <img src="images/logo.png" alt="Logo" width="80" height="80">
+  </a>
 
-    git clone https://github.com/singingwolfboy/flask-dance-facebook-sqla.git
-    cd flask-dance-facebook-sqla
-    python3 -m venv venv
-    source venv/bin/activate
-    pip install -r requirements.txt
+  <h3 align="center">Best-README-Template</h3>
 
-These commands will clone this git repository onto your computer,
-create a `virtual environment`_ for this project, activate it, and install
-the dependencies listed in ``requirements.txt``.
+  <p align="center">
+    An awesome README template to jumpstart your projects!
+    <br />
+    <a href="https://github.com/othneildrew/Best-README-Template"><strong>Explore the docs »</strong></a>
+    <br />
+    <br />
+    <a href="https://github.com/othneildrew/Best-README-Template">View Demo</a>
+    ·
+    <a href="https://github.com/othneildrew/Best-README-Template/issues">Report Bug</a>
+    ·
+    <a href="https://github.com/othneildrew/Best-README-Template/issues">Request Feature</a>
+  </p>
+</p>
 
-Also note that if you have trouble installing ``psycopg2``, it's OK to
-skip it. That dependency is only needed if you are using PostgreSQL
-for your database, and if you're running locally, then you can use
-SQLite instead, which is simpler. SQLite is also the default option,
-so you don't need to reconfigure anything.
 
-Step 3: Create the database
----------------------------
-Since we're storing OAuth data in the SQLAlchemy storage, we need to
-create the database to hold that data. Fortunately, this project includes
-basic command line support, so doing so is pretty straightforward.
-Run this code::
 
-    flask createdb
+<!-- TABLE OF CONTENTS -->
+## Table of Contents
 
-If it worked, you should see the message "Database tables created".
+* [About the Project](#about-the-project)
+  * [Built With](#built-with)
+* [Getting Started](#getting-started)
+  * [Prerequisites](#prerequisites)
+  * [Installation](#installation)
+* [Usage](#usage)
+* [Roadmap](#roadmap)
+* [Contributing](#contributing)
+* [License](#license)
+* [Contact](#contact)
+* [Acknowledgements](#acknowledgements)
 
-Step 4: Set environment variables
----------------------------------
-Many applications use `environment variables`_ for configuration, and
-Flask-Dance is no exception. You'll need to set the following environment
-variables:
 
-* ``FLASK_APP``: set this to ``app``. Since this is the default value, you
-  can leave it unset it you prefer.
-* ``FLASK_SECRET_KEY``: set this to a random string. This is used for
-  signing the Flask session cookie.
-* ``FACEBOOK_OAUTH_CLIENT_ID``: set this to the client ID
-  you got from Facebook.
-* ``FACEBOOK_OAUTH_CLIENT_SECRET``: set this to the client secret
-  you got from Facebook.
-* ``OAUTHLIB_INSECURE_TRANSPORT``: set this to ``true``. This indicates that
-  you're doing local testing, and it's OK to use HTTP instead of HTTPS for
-  OAuth. You should only do this for local testing.
-  Do **not** set this in production! [`oauthlib docs`_]
 
-The easiest way to set these environment variables is to define them in
-an ``.env`` file. You can then install the `python-dotenv`_ package
-to make Flask automatically read this file when you run the dev server.
-This repository has a ``.env.example`` file that you can copy to
-``.env`` to get a head start.
+<!-- ABOUT THE PROJECT -->
+## About The Project
 
-Step 5: Run your app and login with Facebook!
----------------------------------------------
-If you're setting environment variables manually, run your app using the
-``flask`` command::
+[![Product Name Screen Shot][product-screenshot]](https://example.com)
 
-    flask run
+There are many great README templates available on GitHub, however, I didn't find one that really suit my needs so I created this enhanced one. I want to create a README template so amazing that it'll be the last one you ever need.
 
-Then, go to http://localhost:5000/ to visit your app and log in with Facebook!
+Here's why:
+* Your time should be focused on creating something amazing. A project that solves a problem and helps others
+* You shouldn't be doing the same tasks over and over like creating a README from scratch
+* You should element DRY principles to the rest of your life :smile:
 
-If your application isn't loading the environment variables from your ``.env``
-file, then you need to install the `python-dotenv`_ package using ``pip``::
+Of course, no one template will serve all projects since your needs may be different. So I'll be adding more in the near future. You may also suggest changes by forking this repo and creating a pull request or opening an issue.
 
-    pip install python-dotenv
+A list of commonly used resources that I find helpful are listed in the acknowledgements.
 
-Once the package is installed, try the ``flask run`` command again
+### Built With
+This section should list any major frameworks that you built your project using. Leave any add-ons/plugins for the acknowledgements section. Here are a few examples.
+* [Bootstrap](https://getbootstrap.com)
+* [JQuery](https://jquery.com)
+* [Laravel](https://laravel.com)
 
-.. _Flask: http://flask.pocoo.org/docs/
-.. _Flask-Dance: http://flask-dance.readthedocs.org/
-.. _Flask-SQLAlchemy: http://flask-sqlalchemy.pocoo.org/
-.. _Flask-Login: https://flask-login.readthedocs.io
-.. _Facebook: https://facebook.com/
-.. _Heroku: https://www.heroku.com/
-.. _environment variables: https://en.wikipedia.org/wiki/Environment_variable
-.. _oauthlib docs: http://oauthlib.readthedocs.org/en/latest/oauth2/security.html#envvar-OAUTHLIB_INSECURE_TRANSPORT
-.. _python-dotenv: https://github.com/theskumar/python-dotenv
-.. _virtual environment: https://docs.python.org/3.7/library/venv.html
-.. _Fork this GitHub repo: https://help.github.com/articles/fork-a-repo/
 
-.. |heroku-deploy| image:: https://www.herokucdn.com/deploy/button.png
-   :target: https://heroku.com/deploy
-   :alt: Deploy to Heroku
+
+<!-- GETTING STARTED -->
+## Getting Started
+
+This is an example of how you may give instructions on setting up your project locally.
+To get a local copy up and running follow these simple example steps.
+
+### Prerequisites
+
+This is an example of how to list things you need to use the software and how to install them.
+* npm
+```sh
+npm install npm@latest -g
+```
+
+### Installation
+
+1. Get a free API Key at [https://example.com](https://example.com)
+2. Clone the repo
+```sh
+git clone https://github.com/your_username_/Project-Name.git
+```
+3. Install NPM packages
+```sh
+npm install
+```
+4. Enter your API in `config.js`
+```JS
+const API_KEY = 'ENTER YOUR API';
+```
+
+
+
+<!-- USAGE EXAMPLES -->
+## Usage
+
+Use this space to show useful examples of how a project can be used. Additional screenshots, code examples and demos work well in this space. You may also link to more resources.
+
+_For more examples, please refer to the [Documentation](https://example.com)_
+
+
+
+<!-- ROADMAP -->
+## Roadmap
+
+See the [open issues](https://github.com/othneildrew/Best-README-Template/issues) for a list of proposed features (and known issues).
+
+
+
+<!-- CONTRIBUTING -->
+## Contributing
+
+Contributions are what make the open source community such an amazing place to be learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+
+
+<!-- LICENSE -->
+## License
+
+Distributed under the MIT License. See `LICENSE` for more information.
+
+
+
+<!-- CONTACT -->
+## Contact
+
+Your Name - [@your_twitter](https://twitter.com/your_username) - email@example.com
+
+Project Link: [https://github.com/your_username/repo_name](https://github.com/your_username/repo_name)
+
+
+
+<!-- ACKNOWLEDGEMENTS -->
+## Acknowledgements
+* [GitHub Emoji Cheat Sheet](https://www.webpagefx.com/tools/emoji-cheat-sheet)
+* [Img Shields](https://shields.io)
+* [Choose an Open Source License](https://choosealicense.com)
+* [GitHub Pages](https://pages.github.com)
+* [Animate.css](https://daneden.github.io/animate.css)
+* [Loaders.css](https://connoratherton.com/loaders)
+* [Slick Carousel](https://kenwheeler.github.io/slick)
+* [Smooth Scroll](https://github.com/cferdinandi/smooth-scroll)
+* [Sticky Kit](http://leafo.net/sticky-kit)
+* [JVectorMap](http://jvectormap.com)
+* [Font Awesome](https://fontawesome.com)
+
+
+
+
+
+<!-- MARKDOWN LINKS & IMAGES -->
+<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+[contributors-shield]: https://img.shields.io/github/contributors/othneildrew/Best-README-Template.svg?style=flat-square
+[contributors-url]: https://github.com/othneildrew/Best-README-Template/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/othneildrew/Best-README-Template.svg?style=flat-square
+[forks-url]: https://github.com/othneildrew/Best-README-Template/network/members
+[stars-shield]: https://img.shields.io/github/stars/othneildrew/Best-README-Template.svg?style=flat-square
+[stars-url]: https://github.com/othneildrew/Best-README-Template/stargazers
+[issues-shield]: https://img.shields.io/github/issues/othneildrew/Best-README-Template.svg?style=flat-square
+[issues-url]: https://github.com/othneildrew/Best-README-Template/issues
+[license-shield]: https://img.shields.io/github/license/othneildrew/Best-README-Template.svg?style=flat-square
+[license-url]: https://github.com/othneildrew/Best-README-Template/blob/master/LICENSE.txt
+[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=flat-square&logo=linkedin&colorB=555
+[linkedin-url]: https://linkedin.com/in/othneildrew
+[product-screenshot]: images/screenshot.png
