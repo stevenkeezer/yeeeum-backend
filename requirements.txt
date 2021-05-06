@@ -11,7 +11,7 @@ cryptography==2.8
 docutils==0.15.2
 Flask==1.1.1
 Flask-Bcrypt==0.7.1
-Flask-Cors==3.0.8
+Flask-Cors==3.0.9
 Flask-Dance==3.0.0
 Flask-Login==0.4.1
 Flask-Mail==0.9.1
